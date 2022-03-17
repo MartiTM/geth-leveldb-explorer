@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-
+	"github.com/schollz/progressbar/v3"
 	// "encoding/binary"
 	// "github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -54,7 +54,6 @@ var (
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 
 	emptyStorageRoot, _ = hex.DecodeString("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
 )
 
 type Account struct {
@@ -66,21 +65,27 @@ type Account struct {
 
 func main() {
 	ldbPath := "../.ethereum/geth/chaindata"
+	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
 	}
 
+	bar := progressbar.Default(100)
+	bar.Add(1)
+
 	stateRootNode, _ := getLastestStateTree(ldb)
-	fmt.Printf("State root found :%v\n", stateRootNode) 
+	fmt.Printf("State root found :%v\n", stateRootNode)
 
 	storageRootNodes, _ := getStorageRootNodes(ldb, stateRootNode)
-
-	fmt.Printf("%v\n", len(storageRootNodes))
 	
-	size := getTreeSize(ldb, storageRootNodes[0])
+	size:=0
+	for _, storageRoot := range(storageRootNodes) {
+		size += getTreeSize(ldb, storageRoot)
+		// fmt.Printf("Storage root :%v size :%v\n", storageRoot, size)
+	}
+	fmt.Printf("size in byte :%v\n", size)
 	
-	fmt.Printf("%v\n", size)
 }
 
 func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
@@ -105,30 +110,83 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash) ([]commo
 	var storageRootNodes []common.Hash
 
 	trieDB := trie.NewDatabase(ldb)
-	state_trie, _ := trie.New(stateRootNode, trieDB)
+	tree, _ := trie.New(stateRootNode, trieDB)
 
-	it := trie.NewIterator(state_trie.NodeIterator(stateRootNode[:]))
-	i:=0
-	y:=0
+	// x:= 0
+	// z:= 0
+
+	// list := explore(ldb, stateRootNode)
+	
+
+	// for _, data := range(list) {
+	// 	var acc Account
+	// 	x++
+
+	// 	if err := rlp.DecodeBytes(data, &acc); err != nil {
+	// 		panic(err)
+	// 	}
+
+	// 	if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
+	// 		z++
+	// 	}
+		
+	// }
+	// fmt.Printf("Nombre de compte :%v\n", x)
+	// fmt.Printf("Smartcontract :%v\n", z)
+
+
+	it := trie.NewIterator(tree.NodeIterator(stateRootNode[:]))
+	i := 0
+	y := 0
 	for it.Next() {
 		var acc Account
-		i++
-		if i%10000 == 0 {
-			fmt.Printf("Nombre de compte :%v\n", i)
-		}
+
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
+
+		i++
 		if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
 			y++
-			if y%1000 == 0 {
-				fmt.Printf("Smartcontract :%v\n", y)
-			}
 			storageRootNodes = append(storageRootNodes, acc.Root)
+		}
+
+		if (i%100000 == 0) {
+			fmt.Printf("Nombre de compte :%v\n", i)
+			fmt.Printf("Smartcontract :%v\n", y)
 		}
 	}
 
+	fmt.Printf("Nombre de compte Final:%v\n", i)
+	fmt.Printf("Smartcontract Final:%v\n", y)
+	
 	return storageRootNodes, nil
+}
+
+func explore(ldb ethdb.Database, rootNode common.Hash) [][]byte {
+	value, err := ldb.Get(rootNode[:])
+	if err != nil {
+		panic(err)
+	}
+
+	list := [][]byte{}
+
+	var nodes [][]byte
+	rlp.DecodeBytes(value, &nodes)
+	
+	// end of tree
+	if len(nodes) == 2 {
+		return append(list, nodes[1])
+	}
+	
+	for _, keyNode := range nodes {
+		if len(keyNode) == 0 {
+			continue
+		}
+		list = append(list, explore(ldb, common.BytesToHash(keyNode))[:]...)
+	}
+	
+	return list
 }
 
 func getTreeSize(ldb ethdb.Database, rootNode common.Hash) int {
@@ -138,8 +196,8 @@ func getTreeSize(ldb ethdb.Database, rootNode common.Hash) int {
 	}
 
 	size := len(rootNode) + len(value)
-	
-	var nodes [][]byte;
+
+	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
 
 	// end of tree
@@ -147,9 +205,12 @@ func getTreeSize(ldb ethdb.Database, rootNode common.Hash) int {
 		return size
 	}
 
-	for _, keyNode := range(nodes) {
+	for _, keyNode := range nodes {
+		if len(keyNode) == 0 {
+			continue
+		}
 		size += getTreeSize(ldb, common.BytesToHash(keyNode))
 	}
-	
+
 	return size
 }
