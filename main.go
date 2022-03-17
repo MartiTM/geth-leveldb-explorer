@@ -5,16 +5,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-
-	// "github.com/ethereum/go-ethereum/core/state"
+	"github.com/schollz/progressbar/v3"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	// "encoding/binary"
-	// "github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
@@ -75,23 +71,20 @@ func main() {
 	
 	storageRootNodes := make(chan common.Hash)
 	size := make(chan int)
-	end := make(chan bool)
-	
+	defer close(size)
+ 	
 	go getStorageRootNodes(ldb, stateRootNode, storageRootNodes)
 
-	go countSize(size, end)
+	go countSize(size)
 
 	for storageRoot := range storageRootNodes {
 		go getTreeSize(ldb, storageRoot, size)
 	}
-
-	if <-end {
-		fmt.Printf("Fin\n")
-	}
 }
 
-func countSize(size chan int, end chan bool) {
+func countSize(size chan int) {
 	sum := 0
+
 	for s := range size {
 		sum += s
 	}
@@ -118,33 +111,34 @@ func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
 
 func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash) (error) {
 	defer close(c)
+
+	barAcc := progressbar.Default(-1, "Account found")
+	fmt.Printf("\n")
+
 	trieDB := trie.NewDatabase(ldb)
 	tree, _ := trie.New(stateRootNode, trieDB)
 
 	it := trie.NewIterator(tree.NodeIterator(stateRootNode[:]))
-	i := 0
-	y := 0
+	nbAccount := 0
+	nbSmartcontract := 0
 	for it.Next() {
 		var acc Account
-		i++
+		barAcc.Add(1)
+		nbAccount++
 
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
 
 		if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
-			y++
+			nbSmartcontract++
 			c <- acc.Root
 		}
 
-		if (i%10000 == 0) {
-			fmt.Printf("Account number :%v\n", i)
-			fmt.Printf("Smartcontract number:%v\n", y)
-		}
 	}
 
-	fmt.Printf("Final account number :%v\n", i)
-	fmt.Printf("Final smartcontract number :%v\n", y)
+	fmt.Printf("Final account number :%v\n", nbAccount)
+	fmt.Printf("Final smartcontract number :%v\n", nbSmartcontract)
 	
 	return nil
 }
