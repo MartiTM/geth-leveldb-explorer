@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/schollz/progressbar/v3"
 	// "encoding/binary"
 	// "github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -64,28 +63,31 @@ type Account struct {
 }
 
 func main() {
-	ldbPath := "../.ethereum/geth/chaindata"
-	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
+	// ldbPath := "../.ethereum/geth/chaindata"
+	ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
 	}
 
-	bar := progressbar.Default(100)
-	bar.Add(1)
-
 	stateRootNode, _ := getLastestStateTree(ldb)
 	fmt.Printf("State root found :%v\n", stateRootNode)
-
-	storageRootNodes, _ := getStorageRootNodes(ldb, stateRootNode)
 	
-	size:=0
-	for _, storageRoot := range(storageRootNodes) {
-		size += getTreeSize(ldb, storageRoot)
-		// fmt.Printf("Storage root :%v size :%v\n", storageRoot, size)
+	storageRootNodes := make(chan common.Hash)
+	size := make(chan int)
+	
+	go getStorageRootNodes(ldb, stateRootNode, storageRootNodes)
+	
+	for storageRoot := range storageRootNodes {
+		go getTreeSize(ldb, storageRoot, size)
 	}
-	fmt.Printf("size in byte :%v\n", size)
 	
+	sum := 0
+	for s := range size {
+		sum += s
+	}
+
+	fmt.Printf("size in byte :%v\n", sum)
 }
 
 func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
@@ -103,114 +105,61 @@ func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
 		}
 		headerHash = b.ParentHash.Bytes()
 	}
-	return common.Hash{}, fmt.Errorf("no state tree found")
+	return common.Hash{}, fmt.Errorf("State tree not found")
 }
 
-func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash) ([]common.Hash, error) {
-	var storageRootNodes []common.Hash
-
+func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash) (error) {
 	trieDB := trie.NewDatabase(ldb)
 	tree, _ := trie.New(stateRootNode, trieDB)
-
-	// x:= 0
-	// z:= 0
-
-	// list := explore(ldb, stateRootNode)
-	
-
-	// for _, data := range(list) {
-	// 	var acc Account
-	// 	x++
-
-	// 	if err := rlp.DecodeBytes(data, &acc); err != nil {
-	// 		panic(err)
-	// 	}
-
-	// 	if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
-	// 		z++
-	// 	}
-		
-	// }
-	// fmt.Printf("Nombre de compte :%v\n", x)
-	// fmt.Printf("Smartcontract :%v\n", z)
-
 
 	it := trie.NewIterator(tree.NodeIterator(stateRootNode[:]))
 	i := 0
 	y := 0
 	for it.Next() {
 		var acc Account
+		i++
 
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
 
-		i++
 		if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
 			y++
-			storageRootNodes = append(storageRootNodes, acc.Root)
+			c <- acc.Root
 		}
 
-		if (i%100000 == 0) {
-			fmt.Printf("Nombre de compte :%v\n", i)
-			fmt.Printf("Smartcontract :%v\n", y)
+		if (i%10000 == 0) {
+			fmt.Printf("Account number :%v\n", i)
+			fmt.Printf("Smartcontract number:%v\n", y)
 		}
 	}
 
-	fmt.Printf("Nombre de compte Final:%v\n", i)
-	fmt.Printf("Smartcontract Final:%v\n", y)
+	fmt.Printf("Final account number :%v\n", i)
+	fmt.Printf("Final smartcontract number :%v\n", y)
 	
-	return storageRootNodes, nil
+	return nil
 }
 
-func explore(ldb ethdb.Database, rootNode common.Hash) [][]byte {
+func getTreeSize(ldb ethdb.Database, rootNode common.Hash, s chan int) {
 	value, err := ldb.Get(rootNode[:])
 	if err != nil {
-		panic(err)
-	}
-
-	list := [][]byte{}
-
-	var nodes [][]byte
-	rlp.DecodeBytes(value, &nodes)
-	
-	// end of tree
-	if len(nodes) == 2 {
-		return append(list, nodes[1])
+		return
 	}
 	
-	for _, keyNode := range nodes {
-		if len(keyNode) == 0 {
-			continue
-		}
-		list = append(list, explore(ldb, common.BytesToHash(keyNode))[:]...)
-	}
+	s <- len(rootNode) + len(value)
 	
-	return list
-}
-
-func getTreeSize(ldb ethdb.Database, rootNode common.Hash) int {
-	value, err := ldb.Get(rootNode[:])
-	if err != nil {
-		return 0
-	}
-
-	size := len(rootNode) + len(value)
-
 	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
 
 	// end of tree
 	if len(nodes) == 2 {
-		return size
+		return
 	}
 
 	for _, keyNode := range nodes {
 		if len(keyNode) == 0 {
 			continue
 		}
-		size += getTreeSize(ldb, common.BytesToHash(keyNode))
+		getTreeSize(ldb, common.BytesToHash(keyNode), s)
 	}
-
-	return size
 }
