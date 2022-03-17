@@ -72,10 +72,11 @@ func main() {
 	}
 
 	stateRootNode, _ := getLastestStateTree(ldb)
+	fmt.Printf("State root found :%v\n", stateRootNode) 
 
 	storageRootNodes, _ := getStorageRootNodes(ldb, stateRootNode)
 
-	fmt.Printf("%v\n", storageRootNodes)
+	fmt.Printf("%v\n", len(storageRootNodes))
 
 }
 
@@ -104,13 +105,22 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash) ([]commo
 	state_trie, _ := trie.New(stateRootNode, trieDB)
 
 	it := trie.NewIterator(state_trie.NodeIterator(stateRootNode[:]))
-
+	i:=0
+	y:=0
 	for it.Next() {
 		var acc Account
+		i++
+		if i%10000 == 0 {
+			fmt.Printf("Nombre de compte :%v\n", i)
+		}
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
 		if bytes.Compare(acc.Root.Bytes(), emptyStorageRoot) != 0 {
+			y++
+			if y%1000 == 0 {
+				fmt.Printf("Smartcontract :%v\n", y)
+			}
 			storageRootNodes = append(storageRootNodes, acc.Root)
 		}
 	}
