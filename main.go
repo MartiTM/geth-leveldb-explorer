@@ -77,7 +77,10 @@ func main() {
 	storageRootNodes, _ := getStorageRootNodes(ldb, stateRootNode)
 
 	fmt.Printf("%v\n", len(storageRootNodes))
-
+	
+	size := getTreeSize(ldb, storageRootNodes[0])
+	
+	fmt.Printf("%v\n", size)
 }
 
 func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
@@ -126,4 +129,27 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash) ([]commo
 	}
 
 	return storageRootNodes, nil
+}
+
+func getTreeSize(ldb ethdb.Database, rootNode common.Hash) int {
+	value, err := ldb.Get(rootNode[:])
+	if err != nil {
+		return 0
+	}
+
+	size := len(rootNode) + len(value)
+	
+	var nodes [][]byte;
+	rlp.DecodeBytes(value, &nodes)
+
+	// end of tree
+	if len(nodes) == 2 {
+		return size
+	}
+
+	for _, keyNode := range(nodes) {
+		size += getTreeSize(ldb, common.BytesToHash(keyNode))
+	}
+	
+	return size
 }
