@@ -59,8 +59,8 @@ type Account struct {
 }
 
 func main() {
-	// ldbPath := "../.ethereum/geth/chaindata"
-	ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
+	ldbPath := "../.ethereum/geth/chaindata"
+	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
@@ -71,7 +71,6 @@ func main() {
 	
 	storageRootNodes := make(chan common.Hash)
 	size := make(chan int)
-	defer close(size)
  	
 	go getStorageRootNodes(ldb, stateRootNode, storageRootNodes)
 
@@ -80,6 +79,7 @@ func main() {
 	for storageRoot := range storageRootNodes {
 		go getTreeSize(ldb, storageRoot, size)
 	}
+	close(size)
 }
 
 func countSize(size chan int) {
