@@ -75,18 +75,20 @@ func main() {
  	
 	go getStorageRootNodes(ldb, stateRootNode, storageRootNodes)
 
-	go countSize(&total, size)
+	go runTreeSize(ldb, storageRootNodes, size)
 
-	for storageRoot := range storageRootNodes {
-		go getTreeSize(ldb, storageRoot, size)
+	for s := range size {
+		total += s
 	}
-	fmt.Printf("size in byte :%v\n", total)
+
+	fmt.Printf("Size in byte :%v\n", total)
 }
 
-func countSize(total *int, size chan int) {
-	for s := range size {
-		*total += s
+func runTreeSize(ldb ethdb.Database, storageRootNodes chan common.Hash, size chan int) {
+	for storageRoot := range storageRootNodes {
+		getTreeSize(ldb, storageRoot, size)
 	}
+	close(size)
 }
 
 func getLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
