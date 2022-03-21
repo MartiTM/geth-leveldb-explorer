@@ -42,7 +42,7 @@ func GetStorageRootNodesTest(ldb ethdb.Database, stateRootNode common.Hash) {
 	fmt.Printf("Smartcontract Final:%v\n", y)
 }
 
-func newStateExplorer(ldb ethdb.Database, stateRootNode common.Hash) {
+func NewStateExplorer(ldb ethdb.Database, stateRootNode common.Hash) {
 	x := 0
 	z := 0
 	barAcc := progressbar.Default(-1, "Account found")

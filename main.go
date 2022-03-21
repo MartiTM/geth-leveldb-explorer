@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/MartiTM/geth-leveldb-explorer/levelDbTree"
+	"main/levelDbTree"
 )
 
 func main()  {
+	test()
 }
 
 func current()  {
@@ -18,7 +19,7 @@ func current()  {
 		panic(err)
 	}
 
-	stateRootNode, _ := levelDbTree.getLastestStateTree(ldb)
+	stateRootNode, _ := levelDbTree.GetLastestStateTree(ldb)
 	fmt.Printf("State root found :%v\n", stateRootNode)
 	
 	storageRootNodes := make(chan common.Hash)
@@ -27,7 +28,7 @@ func current()  {
  	
 	go levelDbTree.GetStorageRootNodes(ldb, stateRootNode, storageRootNodes)
 
-	go levelDbTree.runTreeSize(ldb, storageRootNodes, size)
+	go levelDbTree.RunTreeSize(ldb, storageRootNodes, size)
 
 	for s := range size {
 		total += s
@@ -37,18 +38,18 @@ func current()  {
 }
 
 func test()  {
-	// ldbPath := "../.ethereum/geth/chaindata"
-	ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
+	ldbPath := "../.ethereum/geth/chaindata"
+	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
 	}
 
-	stateRootNode, _ := levelDbTree.getLastestStateTree(ldb)
+	stateRootNode, _ := levelDbTree.GetLastestStateTree(ldb)
 	fmt.Printf("State root found :%v\n", stateRootNode)
 
 	fmt.Printf("sans lib :\n")
-	levelDbTree.newStateExplorer(ldb, stateRootNode)
+	levelDbTree.NewStateExplorer(ldb, stateRootNode)
 
 	// fmt.Printf("avec lib :\n")
 	// getStorageRootNodesTest(ldb, stateRootNode)
