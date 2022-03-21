@@ -10,7 +10,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func GetStorageRootNodesTest(ldb ethdb.Database, stateRootNode common.Hash) {
+func OldStateExplorer(ldb ethdb.Database, stateRootNode common.Hash) {
 
 	trieDB := trie.NewDatabase(ldb)
 	tree, _ := trie.New(stateRootNode, trieDB)
@@ -27,9 +27,6 @@ func GetStorageRootNodesTest(ldb ethdb.Database, stateRootNode common.Hash) {
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
-
-		
-		// fmt.Printf("node :%x\n", common.BytesToHash(it.Key))
 
 		i++
 		barAcc.Add(1)
@@ -75,7 +72,6 @@ func NewStateExplorer(ldb ethdb.Database, stateRootNode common.Hash) {
 func explore(ldb ethdb.Database, rootNode common.Hash, accounts chan []byte) {
 	value, err := ldb.Get(rootNode[:])
 	if err != nil {
-		// fmt.Printf("pas trouvé :%v\n", rootNode)
 		return
 	}
 

@@ -8,6 +8,7 @@ import (
 )
 
 func main()  {
+	// current()
 	test()
 }
 
@@ -40,17 +41,20 @@ func current()  {
 func test()  {
 	ldbPath := "../.ethereum/geth/chaindata"
 	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
+	
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
 	}
 
 	stateRootNode, _ := levelDbTree.GetLastestStateTree(ldb)
-	fmt.Printf("State root found :%v\n", stateRootNode)
+	fmt.Printf("State root found :%v\n\n", stateRootNode)
 
 	fmt.Printf("sans lib :\n")
 	levelDbTree.NewStateExplorer(ldb, stateRootNode)
+	
+	fmt.Printf("\n")
 
-	// fmt.Printf("avec lib :\n")
-	// getStorageRootNodesTest(ldb, stateRootNode)
+	fmt.Printf("avec lib :\n")
+	levelDbTree.OldStateExplorer(ldb, stateRootNode)
 }
