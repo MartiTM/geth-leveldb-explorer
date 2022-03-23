@@ -1,21 +1,44 @@
-package levelDbTree
+package levelDbTools
 
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/schollz/progressbar/v3"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/schollz/progressbar/v3"
 )
 
-func RunTreeSize(ldb ethdb.Database, storageRootNodes chan common.Hash, size chan int) {
-	for storageRoot := range storageRootNodes {
-		GetTreeSize(ldb, storageRoot, size)
+func GetStorageSize(ldbPath string) {
+	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
+	if err != nil {
+		panic(err)
 	}
-	close(size)
+
+	stateRootNode, _ := GetLastestStateTree(ldb)
+	
+	storageRootNodes := make(chan common.Hash)
+	size := make(chan int)
+	total := 0
+ 	
+	go GetStorageRootNodes(ldb, stateRootNode, storageRootNodes)
+
+	go func() {
+		for storageRoot := range storageRootNodes {
+			GetTreeSize(ldb, storageRoot, size)
+		}
+		close(size)
+	}()
+
+	for s := range size {
+		total += s
+	}
+
+	fmt.Printf("Size in byte :%v\n", total)
 }
 
 func GetLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
@@ -30,7 +53,7 @@ func GetLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
 
 		if len(stateRootNode) > 0 {
 			fmt.Printf("Block number : %x\n", b.Number)
-			fmt.Printf("State root : %v\n", stateRootNode)
+			fmt.Printf("State root : %x\n", b.Root)
 			return b.Root, nil
 		}
 		headerHash = b.ParentHash.Bytes()
