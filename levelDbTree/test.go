@@ -18,7 +18,7 @@ func OldStateExplorer(ldb ethdb.Database, stateRootNode common.Hash) {
 	barAcc := progressbar.Default(-1, "Account found")
 
 
-	it := trie.NewIterator(tree.NodeIterator(stateRootNode[:]))
+	it := trie.NewIterator(tree.NodeIterator(nil))
 	i := 0
 	y := 0
 	for it.Next() {
