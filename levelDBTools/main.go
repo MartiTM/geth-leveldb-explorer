@@ -1,4 +1,4 @@
-package levelDbTools
+package levelDBTools
 
 import (
 	"bytes"
@@ -13,13 +13,13 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func GetStorageSize(ldbPath string) {
+func GetStorageTreeSize(ldbPath string) {
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
 		panic(err)
 	}
 
-	stateRootNode, _ := GetLastestStateTree(ldb)
+	stateRootNode, _ := GetLatestStateTree(ldb)
 	
 	storageRootNodes := make(chan common.Hash)
 	size := make(chan int)
@@ -41,22 +41,22 @@ func GetStorageSize(ldbPath string) {
 	fmt.Printf("Size in byte :%v\n", total)
 }
 
-func GetLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
+func GetLatestStateTree(ldb ethdb.Database) (common.Hash, error) {
 	headerHash, _ := ldb.Get(HeadHeaderKey)
 	for headerHash != nil {
-		var b types.Header
+		var blockHeader types.Header
 		blockNb, _ := ldb.Get(append(HeaderNumberPrefix, headerHash...))
-		blockHeader, _ := ldb.Get(append(HeaderPrefix[:], append(blockNb, headerHash...)...))
-		rlp.DecodeBytes(blockHeader, &b)
+		blockHeaderRaw, _ := ldb.Get(append(HeaderPrefix[:], append(blockNb, headerHash...)...))
+		rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
 
-		stateRootNode, _ := ldb.Get(b.Root.Bytes())
+		stateRootNode, _ := ldb.Get(blockHeader.Root.Bytes())
 
 		if len(stateRootNode) > 0 {
-			fmt.Printf("Block number : %x\n", b.Number)
-			fmt.Printf("State root : %x\n", b.Root)
-			return b.Root, nil
+			fmt.Printf("Block number : %x\n", blockHeader.Number)
+			fmt.Printf("State root : %x\n", blockHeader.Root)
+			return blockHeader.Root, nil
 		}
-		headerHash = b.ParentHash.Bytes()
+		headerHash = blockHeader.ParentHash.Bytes()
 	}
 	return common.Hash{}, fmt.Errorf("State tree not found")
 }
@@ -105,11 +105,6 @@ func GetTreeSize(ldb ethdb.Database, rootNode common.Hash, s chan int) {
 	
 	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
-
-	// end of tree
-	if len(nodes) == 2 {
-		return
-	}
 
 	for _, keyNode := range nodes {
 		if len(keyNode) == 0 {

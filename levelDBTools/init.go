@@ -1,4 +1,4 @@
-package levelDbTools
+package levelDBTools
 
 import (
 	"encoding/hex"

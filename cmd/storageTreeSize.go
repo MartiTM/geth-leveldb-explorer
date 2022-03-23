@@ -5,7 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"main/levelDbTools"
+	"main/levelDBTools"
 
 	"github.com/spf13/cobra"
 )
@@ -19,7 +19,7 @@ var storageTreeSizeCmd = &cobra.Command{
 		if(len(args) == 0 ) {
 			args = append(args, "./.ethereum/geth/chaindata")
 		}
-		levelDbTools.GetStorageSize(args[0])
+		levelDBTools.GetStorageTreeSize(args[0])
 	},
 }
 
