@@ -13,7 +13,7 @@ import (
 // storageTreeSizeCmd represents the storageTreeSize command
 var storageTreeSizeCmd = &cobra.Command{
 	Use:   "storageTreeSize <LevelDB path>",
-	Short: "",
+	Short: "Displays the size of the storage trees of the last state tree present in levelDB",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if(len(args) == 0 ) {
@@ -25,14 +25,4 @@ var storageTreeSizeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(storageTreeSizeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// storageTreeSizeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// storageTreeSizeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

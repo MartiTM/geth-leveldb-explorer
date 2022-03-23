@@ -13,6 +13,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+// Displays the size of the storage trees of the most recent state tree present in levelDB
 func GetStorageTreeSize(ldbPath string) {
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
@@ -41,6 +42,7 @@ func GetStorageTreeSize(ldbPath string) {
 	fmt.Printf("Size in byte :%v\n", total)
 }
 
+// Returns the hash of the most recent state tree 
 func GetLatestStateTree(ldb ethdb.Database) (common.Hash, error) {
 	headerHash, _ := ldb.Get(HeadHeaderKey)
 	for headerHash != nil {
@@ -61,6 +63,7 @@ func GetLatestStateTree(ldb ethdb.Database) (common.Hash, error) {
 	return common.Hash{}, fmt.Errorf("State tree not found")
 }
 
+// Go through the state tree to put in the channel the hashes of the smartcontracts root nodes
 func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash) (error) {
 	defer close(c)
 
@@ -95,6 +98,7 @@ func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 	return nil
 }
 
+// Returns in the channel each node size of the tree
 func GetTreeSize(ldb ethdb.Database, rootNode common.Hash, s chan int) {
 	value, err := ldb.Get(rootNode[:])
 	if err != nil {
