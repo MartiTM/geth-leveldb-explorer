@@ -30,6 +30,7 @@ func GetLastestStateTree(ldb ethdb.Database) (common.Hash, error) {
 
 		if len(stateRootNode) > 0 {
 			fmt.Printf("Block number : %x\n", b.Number)
+			fmt.Printf("State root : %v\n", stateRootNode)
 			return b.Root, nil
 		}
 		headerHash = b.ParentHash.Bytes()

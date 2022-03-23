@@ -8,12 +8,11 @@ import (
 )
 
 func main()  {
-	// current()
-	test()
+	current()
 }
 
 func current()  {
-	ldbPath := "../.ethereum/geth/chaindata"
+	ldbPath := "../.ethereum-test/geth/chaindata"
 	// ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
@@ -21,7 +20,6 @@ func current()  {
 	}
 
 	stateRootNode, _ := levelDbTree.GetLastestStateTree(ldb)
-	fmt.Printf("State root found :%v\n", stateRootNode)
 	
 	storageRootNodes := make(chan common.Hash)
 	size := make(chan int)
