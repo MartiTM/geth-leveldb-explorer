@@ -46,7 +46,7 @@ func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 	trieDB := trie.NewDatabase(ldb)
 	tree, _ := trie.New(stateRootNode, trieDB)
 
-	it := trie.NewIterator(tree.NodeIterator(stateRootNode[:]))
+	it := trie.NewIterator(tree.NodeIterator(nil))
 	nbAccount := 0
 	nbSmartcontract := 0
 	for it.Next() {
