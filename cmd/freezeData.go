@@ -7,7 +7,7 @@ package cmd
 import (
 
 	"github.com/spf13/cobra"
-	"main/freezeDBTools"
+	"main/tools"
 	"strconv"
 )
 
@@ -24,7 +24,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		blockNumber, _ := strconv.ParseUint(args[1], 10, 64)
-		freezeDBTools.GetBlockData(args[0], blockNumber)
+		tools.GetBlockData(args[0], blockNumber)
 	},
 }
 

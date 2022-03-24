@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/spf13/cobra"
-	"main/inspectDatabase"
+	"main/tools"
 )
 
 // inspectDBCmd represents the inspectDB command
@@ -20,7 +20,7 @@ var inspectDBCmd = &cobra.Command{
 		path := "../.ethereum-testnet/goerli/geth/chaindata"
 		// path := "../.ethereum-test/geth/chaindata"
 		db, _ := rawdb.NewLevelDBDatabaseWithFreezer(path, 0, 0, path+"/ancient", "", false)
-		inspectDatabase.InspectDatabase(db, nil, nil)
+		tools.InspectDatabase(db, nil, nil)
 	},
 }
 
