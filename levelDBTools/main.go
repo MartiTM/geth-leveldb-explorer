@@ -39,7 +39,7 @@ func GetStorageTreeSize(ldbPath string) {
 		total += s
 	}
 
-	fmt.Printf("Size in byte :%v\n", total)
+	fmt.Printf("Size in bytes :%v\n", total)
 }
 
 // Returns the hash of the most recent state tree 
@@ -92,7 +92,7 @@ func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 
 	}
 
-	fmt.Printf("Final account number :%v\n", nbAccount)
+	fmt.Printf("\nFinal account number :%v\n", nbAccount)
 	fmt.Printf("Final smartcontract number :%v\n", nbSmartcontract)
 	
 	return nil
