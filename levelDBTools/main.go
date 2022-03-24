@@ -13,6 +13,34 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+func CountStorageTree(ldbPath string) {
+	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
+	if err != nil {
+		panic(err)
+	}
+	bar := progressbar.Default(-1, "Block crowled")
+	fmt.Printf("\n")
+	total := 0
+	headerHash, _ := ldb.Get(HeadHeaderKey)
+	for headerHash != nil {
+		var blockHeader types.Header
+		blockNb, _ := ldb.Get(append(HeaderNumberPrefix, headerHash...))
+		if blockNb == nil {
+			break
+		}
+		blockHeaderRaw, _ := ldb.Get(append(HeaderPrefix[:], append(blockNb, headerHash...)...))
+		rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
+
+		stateRootNode, _ := ldb.Get(blockHeader.Root.Bytes())
+		bar.Add(1)
+		if len(stateRootNode) > 0 {
+			total++
+		}
+		headerHash = blockHeader.ParentHash.Bytes()
+	}
+	fmt.Printf("\nTotal number of state tree : %v\n", total)
+} 
+
 // Displays the size of the storage trees of the most recent state tree present in levelDB
 func GetStorageTreeSize(ldbPath string) {
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)

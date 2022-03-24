@@ -23,6 +23,20 @@ var storageTreeSizeCmd = &cobra.Command{
 	},
 }
 
+// storageTreeCountCmd represents the storageTreeSize command
+var storageTreeCountCmd = &cobra.Command{
+	Use:   "storageTreeCount <LevelDB path>",
+	Short: "",
+	Long: ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		if(len(args) == 0 ) {
+			args = append(args, "./.ethereum/geth/chaindata")
+		}
+		levelDBTools.CountStorageTree(args[0])
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(storageTreeSizeCmd)
+	rootCmd.AddCommand(storageTreeCountCmd)
 }
