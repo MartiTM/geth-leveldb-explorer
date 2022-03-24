@@ -24,7 +24,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		blockNumber, _ := strconv.ParseUint(args[1], 10, 64)
-		tools.GetBlockData(args[0], blockNumber)
+		tools.FreezerBlockData(args[0], blockNumber)
 	},
 }
 

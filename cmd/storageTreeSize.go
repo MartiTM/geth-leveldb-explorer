@@ -19,7 +19,7 @@ var storageTreeSizeCmd = &cobra.Command{
 		if(len(args) == 0 ) {
 			args = append(args, "./.ethereum/geth/chaindata")
 		}
-		tools.GetStorageTreeSize(args[0])
+		tools.LatestStateTreeSize(args[0])
 	},
 }
 
@@ -32,7 +32,7 @@ var storageTreeCountCmd = &cobra.Command{
 		if(len(args) == 0 ) {
 			args = append(args, "./.ethereum/geth/chaindata")
 		}
-		tools.CountStorageTree(args[0])
+		tools.CountingStorageTrees(args[0])
 	},
 }
 

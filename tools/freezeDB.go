@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func freezerBlockData(freezePath string, blockNb uint64) {
+func FreezerBlockData(freezePath string, blockNb uint64) {
 	header := getBlockHeader(freezePath, blockNb)
 	fmt.Printf("header : %x\n\n", header)
 
