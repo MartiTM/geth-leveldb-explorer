@@ -10,25 +10,25 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func GetBlockData(freezePath string, blockNb uint64) {
-	header := GetBlockHeader(freezePath, blockNb)
+func freezerBlockData(freezePath string, blockNb uint64) {
+	header := getBlockHeader(freezePath, blockNb)
 	fmt.Printf("header : %x\n\n", header)
 
-	body := GetBlockBody(freezePath, blockNb)
-	fmt.Printf("body : %x\n\n", body)
-
-	receipts := GetBlockReceipt(freezePath, blockNb)
-	fmt.Printf("receipts : %x\n\n", receipts)
-
-	diff := GetBlockDiff(freezePath, blockNb)
-	fmt.Printf("diff : %x\n\n", diff)
-
-	hash := GetBlockHash(freezePath, blockNb)
+	hash := getBlockHash(freezePath, blockNb)
 	fmt.Printf("hash : %x\n\n", hash)
+	
+	body := getBlockBody(freezePath, blockNb)
+	fmt.Printf("body : %v\n\n", body)
+
+	receipts := getBlockReceipt(freezePath, blockNb)
+	fmt.Printf("receipts : %v\n\n", receipts)
+
+	diff := getBlockDiff(freezePath, blockNb)
+	fmt.Printf("diff : %x\n\n", diff)
 }
 
-func GetBlockHash(freezePath string, blockNumber uint64) []byte {
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, "hashes", true, true)
+func getBlockHash(freezePath string, blockNumber uint64) []byte {
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerHashTable, FreezerNoSnappy[freezerHashTable], true)
 	if err != nil {
 		panic(err)
 	}
@@ -38,8 +38,8 @@ func GetBlockHash(freezePath string, blockNumber uint64) []byte {
 	return data
 }
 
-func GetBlockDiff(freezePath string, blockNumber uint64) *big.Int {
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, "diffs", true, true)
+func getBlockDiff(freezePath string, blockNumber uint64) *big.Int {
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerDifficultyTable, FreezerNoSnappy[freezerDifficultyTable], true)
 	if err != nil {
 		panic(err)
 	}
@@ -52,8 +52,8 @@ func GetBlockDiff(freezePath string, blockNumber uint64) *big.Int {
 }
 
 
-func GetBlockReceipt(freezePath string, blockNumber uint64) types.Receipts {
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, "receipts", false, true)
+func getBlockReceipt(freezePath string, blockNumber uint64) types.Receipts {
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerReceiptTable, FreezerNoSnappy[freezerDifficultyTable], true)
 	if err != nil {
 		panic(err)
 	}
@@ -70,8 +70,8 @@ func GetBlockReceipt(freezePath string, blockNumber uint64) types.Receipts {
 	return receipts
 }
 
-func GetBlockBody(freezePath string, blockNumber uint64) types.Body{
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, "bodies", false, true)
+func getBlockBody(freezePath string, blockNumber uint64) types.Body{
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerBodiesTable, FreezerNoSnappy[freezerBodiesTable], true)
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +82,8 @@ func GetBlockBody(freezePath string, blockNumber uint64) types.Body{
 	return body
 }
 
-func GetBlockHeader(freezePath string, blockNumber uint64) types.Header {
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, "headers", false, true)
+func getBlockHeader(freezePath string, blockNumber uint64) types.Header {
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerHeaderTable, FreezerNoSnappy[freezerHeaderTable], true)
 	if err != nil {
 		panic(err)
 	}
