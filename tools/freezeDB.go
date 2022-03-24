@@ -1,4 +1,4 @@
-package freezeDBTools
+package tools
 
 import (
 	"bytes"

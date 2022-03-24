@@ -1,4 +1,4 @@
-package inspectDatabase
+package tools
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/olekukonko/tablewriter"
 	log "github.com/inconshreveable/log15"
+	"github.com/olekukonko/tablewriter"
 )
 
 // InspectDatabase traverses the entire database and checks the size

@@ -1,4 +1,4 @@
-package levelDBTools
+package tools
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -21,14 +22,14 @@ func CountStorageTree(ldbPath string) {
 	bar := progressbar.Default(-1, "Block crowled")
 	fmt.Printf("\n")
 	total := 0
-	headerHash, _ := ldb.Get(HeadHeaderKey)
+	headerHash, _ := ldb.Get(headHeaderKey)
 	for headerHash != nil {
 		var blockHeader types.Header
-		blockNb, _ := ldb.Get(append(HeaderNumberPrefix, headerHash...))
+		blockNb, _ := ldb.Get(append(headerNumberPrefix, headerHash...))
 		if blockNb == nil {
 			break
 		}
-		blockHeaderRaw, _ := ldb.Get(append(HeaderPrefix[:], append(blockNb, headerHash...)...))
+		blockHeaderRaw, _ := ldb.Get(append(headerPrefix[:], append(blockNb, headerHash...)...))
 		rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
 
 		stateRootNode, _ := ldb.Get(blockHeader.Root.Bytes())
@@ -72,11 +73,11 @@ func GetStorageTreeSize(ldbPath string) {
 
 // Returns the hash of the most recent state tree 
 func GetLatestStateTree(ldb ethdb.Database) (common.Hash, error) {
-	headerHash, _ := ldb.Get(HeadHeaderKey)
+	headerHash, _ := ldb.Get(headHeaderKey)
 	for headerHash != nil {
 		var blockHeader types.Header
-		blockNb, _ := ldb.Get(append(HeaderNumberPrefix, headerHash...))
-		blockHeaderRaw, _ := ldb.Get(append(HeaderPrefix[:], append(blockNb, headerHash...)...))
+		blockNb, _ := ldb.Get(append(headerNumberPrefix, headerHash...))
+		blockHeaderRaw, _ := ldb.Get(append(headerPrefix[:], append(blockNb, headerHash...)...))
 		rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
 
 		stateRootNode, _ := ldb.Get(blockHeader.Root.Bytes())
@@ -105,7 +106,7 @@ func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 	nbAccount := 0
 	nbSmartcontract := 0
 	for it.Next() {
-		var acc Account
+		var acc snapshot.Account
 		barAcc.Add(1)
 		nbAccount++
 
@@ -113,9 +114,9 @@ func GetStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 			panic(err)
 		}
 
-		if bytes.Compare(acc.Root.Bytes(), EmptyStorageRoot) != 0 {
+		if bytes.Compare(acc.Root, emptyStorageRoot) != 0 {
 			nbSmartcontract++
-			c <- acc.Root
+			c <- common.BytesToHash(acc.Root)
 		}
 
 	}
