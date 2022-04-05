@@ -36,7 +36,18 @@ var storageTreeCountCmd = &cobra.Command{
 	},
 }
 
+// 
+var snapshotReadCmd = &cobra.Command{
+	Use:   "snapshotRead",
+	Short: "",
+	Long: ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		tools.ReadSnapshot()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(storageTreeSizeCmd)
 	rootCmd.AddCommand(storageTreeCountCmd)
+	rootCmd.AddCommand(snapshotReadCmd)
 }

@@ -9,11 +9,29 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/schollz/progressbar/v3"
 )
+
+func ReadSnapshot()  {
+	ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
+	// ldbPath := "../.ethereum-test/geth/chaindata/"
+	ldb := getLDB(ldbPath)
+
+	addrHash := crypto.Keccak256Hash(common.Hex2Bytes("CB94B14958Dae51CC1499396DfA1A401b8085ECB"))
+	key := accountSnapshotKey(addrHash)
+	
+	data, err := ldb.Get(key)
+	data2, err := ldb.Get(common.Hex2Bytes("CB94B14958Dae51CC1499396DfA1A401b8085ECB"))
+
+
+	fmt.Printf("data : %x\n", data)
+	fmt.Printf("data2 : %x\n", data2)
+	fmt.Printf("err : %v\n", err)
+}
 
 func CountingStorageTrees(ldbPath string) {
 	ldb := getLDB(ldbPath)
@@ -29,16 +47,16 @@ func LatestStateTreeSize(ldbPath string) {
 
 	stateTrees := getStateTrees(ldb)
 
-	fmt.Printf("\nTotal number of tree state : %v\n", len(stateTrees))
+	fmt.Printf("\nTotal number of tree state : %v\n\n", len(stateTrees))
 
 	latestStateTree := stateTrees[0]
-	fmt.Printf("Latest state tree : %x\n", latestStateTree.blockNumber)
-	fmt.Printf("Block number : %x\n", latestStateTree.blockNumber)
-	fmt.Printf("State root : %x\n", latestStateTree.stateRoot)
+	fmt.Printf("Latest state tree : \n")
+	fmt.Printf(" - Block number : %x\n", latestStateTree.blockNumber)
+	fmt.Printf(" - State root : %x\n", latestStateTree.stateRoot)
 	
 	totalSize := getStorageTreeSize(ldb, latestStateTree.stateRoot)
 
-	fmt.Printf("Latest storage trees size : %v bytes\n", totalSize)
+	fmt.Printf("\nLatest storage trees size : %v bytes\n", totalSize)
 }
 
 type stateFound struct {
@@ -55,11 +73,14 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 	for headerHash != nil {
 		var blockHeader types.Header
 		blockNb, _ := ldb.Get(append(headerNumberPrefix, headerHash...))
+		if blockNb == nil {
+			break
+		}
 		blockHeaderRaw, _ := ldb.Get(append(headerPrefix[:], append(blockNb, headerHash...)...))
 		rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
 
 		stateRootNode, _ := ldb.Get(blockHeader.Root.Bytes())
-		
+
 		bar.Add(1)
 		if len(stateRootNode) > 0 {
 			res = append(res, stateFound{blockHeader.Number, blockHeader.Root})
@@ -67,6 +88,7 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 
 		headerHash = blockHeader.ParentHash.Bytes()
 	}
+	bar.Close()
 	return res
 }
 
@@ -152,6 +174,6 @@ func getLDB(ldbPath string) ethdb.Database {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print("LevelDB ok")
+	fmt.Print("LevelDB ok\n")
 	return ldb
 }

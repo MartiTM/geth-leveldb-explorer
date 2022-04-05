@@ -57,6 +57,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		total common.StorageSize
 	)
 	// Inspect key-value database first.
+	// b := 0
 	for it.Next() {
 		var (
 			key  = it.Key()
@@ -81,18 +82,38 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		case bytes.HasPrefix(key, CodePrefix) && len(key) == len(CodePrefix)+common.HashLength:
 			codes.Add(size)
 		case bytes.HasPrefix(key, txLookupPrefix) && len(key) == (len(txLookupPrefix)+common.HashLength):
+			// if b%10==0 {
+			// 	fmt.Printf("key : %x\n", key)
+			// 	fmt.Printf("txLookups : %x\n", it.Value())
+			// }
+			// b++
 			txLookups.Add(size)
 		case bytes.HasPrefix(key, SnapshotAccountPrefix) && len(key) == (len(SnapshotAccountPrefix)+common.HashLength):
 			accountSnaps.Add(size)
 		case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
 			storageSnaps.Add(size)
 		case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
+			// if b%50==0 {
+			// 	fmt.Printf("key : %x\n", key)
+			// 	fmt.Printf("preimage : %x\n", it.Value())
+			// }
+			// b++
 			preimages.Add(size)
 		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
 			metadata.Add(size)
 		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
+			// if b%1000==0 {
+			// 		fmt.Printf("key : %x\n", key)
+			// 		fmt.Printf("bloomBits 1 : %x\n", it.Value())
+			// 	}
+			// 	b++
 			bloomBits.Add(size)
 		case bytes.HasPrefix(key, BloomBitsIndexPrefix):
+			// if b%1==0 {
+			// 	fmt.Printf("key : %x\n", key)
+			// 	fmt.Printf("bloomBits 2 : %x\n", it.Value())
+			// }
+			// b++
 			bloomBits.Add(size)
 		case bytes.HasPrefix(key, []byte("clique-")) && len(key) == 7+common.HashLength:
 			cliqueSnaps.Add(size)
