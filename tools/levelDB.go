@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -13,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/schollz/progressbar/v3"
 	log "github.com/inconshreveable/log15"
+	"github.com/schollz/progressbar/v3"
 )
 
 func ReadSnapshot()  {
@@ -46,19 +47,37 @@ func CountingStorageTrees(ldbPath string) {
 func LatestStateTreeSize(ldbPath string) {
 	ldb := getLDB(ldbPath)
 
+	chan_display := make(chan string, 6)
+	
 	stateTrees := getStateTrees(ldb)
+	latestStateTree := stateTrees[0]
+
+	var wg sync.WaitGroup
+	
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		getStorageTreeSize(ldb, latestStateTree.stateRoot, chan_display)
+	}()
+	
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		getStateTreeSize(ldb, latestStateTree.stateRoot, chan_display)
+	}()
+	
+	wg.Wait()
+	close(chan_display)
 
 	fmt.Printf("\nTotal number of tree state : %v\n\n", len(stateTrees))
-
-	latestStateTree := stateTrees[0]
+	
 	fmt.Printf("Latest state tree : \n")
 	fmt.Printf(" - Block number : %x\n", latestStateTree.blockNumber)
 	fmt.Printf(" - State root : %x\n\n", latestStateTree.stateRoot)
-	
-	getStorageTreeSize(ldb, latestStateTree.stateRoot)
-	
-	getStateTreeSize(ldb, latestStateTree.stateRoot)
 
+	for res := range chan_display {
+		fmt.Print(res)
+	}
 }
 
 type stateFound struct {
@@ -94,69 +113,33 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 	return res
 }
 
-func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash) {
+func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display chan string) {
 	chan_storageRootNodes := make(chan common.Hash)
 
-	go getStorageRootNodes(ldb, stateRootNode, chan_storageRootNodes)
-	
-	chan_nodeSize := make(chan int)
-	chan_leafSize := make(chan int)
-
-	go func() {
-		for storageRoot := range chan_storageRootNodes {
-			getTreeSize(ldb, storageRoot, chan_nodeSize, chan_leafSize)
-		}
-		defer close(chan_nodeSize)
-		defer close(chan_leafSize)
-	}()
+	go getStorageRootNodes(ldb, stateRootNode, chan_storageRootNodes, display)
 
 	total := 0
 	totalLeaf := 0
 
-	go func() {
-		for s := range chan_leafSize {
-			totalLeaf += s
-		}
-	}()
-
-	for s := range chan_nodeSize {
-		total += s
+	for storageRoot := range chan_storageRootNodes {
+		treeSize, leafSize := getTreeSize(ldb, storageRoot)
+		total += treeSize
+		totalLeaf += leafSize
 	}
 
-	fmt.Printf("\nLatest storage leaf size : %v bytes\n", totalLeaf)
-	fmt.Printf("Latest storage trees size : %v bytes\n", total)
+	display <- fmt.Sprintf("\nLatest storage leaf size : %v bytes\n", totalLeaf)
+	display <- fmt.Sprintf("Latest storage tree size : %v bytes\n", total)
 }
 
-func getStateTreeSize(ldb ethdb.Database, stateRootNode common.Hash) {
-	
-	chan_nodeSize := make(chan int)
-	chan_leafSize := make(chan int)
+func getStateTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display chan string) {
+	stateTreeSize, stateTreeLeafSize := getTreeSize(ldb, stateRootNode)
 
-	go func() {
-		getTreeSize(ldb, stateRootNode, chan_nodeSize, chan_leafSize)
-		defer close(chan_nodeSize)
-		defer close(chan_leafSize)
-	}()
-
-	total := 0
-	totalLeaf := 0
-
-	go func() {
-		for s := range chan_leafSize {
-			totalLeaf += s
-		}
-	}()
-
-	for s := range chan_nodeSize {
-		total += s
-	}
-
-	fmt.Printf("\nLatest state leaf size : %v bytes\n", totalLeaf)
-	fmt.Printf("Latest state tree size : %v bytes\n", total)
+	display <- fmt.Sprintf("\nLatest state leaf size : %v bytes\n", stateTreeLeafSize)
+	display <- fmt.Sprintf("Latest state tree size : %v bytes\n", stateTreeSize)
 }
 
 // Go through the state tree to put in the channel the hashes of the smartcontracts root nodes
-func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash) {
+func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash, display chan string) {
 	defer close(c)
 
 	trieDB := trie.NewDatabase(ldb)
@@ -182,12 +165,40 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 		}
 	}
 
-	fmt.Printf("\nFinal account number :%v\n", nbAccount)
-	fmt.Printf("Final smartcontract number :%v\n", nbSmartcontract)
+	display <- fmt.Sprintf("\nFinal account number :%v\n", nbAccount)
+	display <- fmt.Sprintf("Final smartcontract number :%v\n", nbSmartcontract)
 }
 
-// Returns in the channel each node size of the tree
-func getTreeSize(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int, leafSize chan int) {
+// 
+func getTreeSize(ldb ethdb.Database, rootNode common.Hash) (treeSize int, leafSize int) {
+
+	chan_nodeSize := make(chan int)
+	chan_leafSize := make(chan int)
+
+	go func() {
+		exploreTreeNodes(ldb, rootNode, chan_nodeSize, chan_leafSize)
+		defer close(chan_nodeSize)
+		defer close(chan_leafSize)
+	}()
+
+	total := 0
+	totalLeaf := 0
+
+	go func() {
+		for s := range chan_leafSize {
+			totalLeaf += s
+		}
+	}()
+
+	for s := range chan_nodeSize {
+		total += s
+	}
+
+	return total, totalLeaf
+	
+}
+
+func exploreTreeNodes(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int, leafSize chan int) {
 	value, err := ldb.Get(rootNode[:])
 	if err != nil {
 		return
@@ -196,16 +207,18 @@ func getTreeSize(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int, le
 	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
 
+	// send result in channel
 	if len(nodes) == 2 {
 		leafSize <- len(rootNode) + len(value)
 	}
 	nodeSize <- len(rootNode) + len(value)
 	
+	// explore next nodes
 	for _, keyNode := range nodes {
 		if len(keyNode) == 0 {
 			continue
 		}
-		getTreeSize(ldb, common.BytesToHash(keyNode), nodeSize, leafSize)
+		exploreTreeNodes(ldb, common.BytesToHash(keyNode), nodeSize, leafSize)
 	}
 }
 
