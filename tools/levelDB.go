@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/schollz/progressbar/v3"
+	log "github.com/inconshreveable/log15"
 )
 
 func ReadSnapshot()  {
@@ -52,11 +53,12 @@ func LatestStateTreeSize(ldbPath string) {
 	latestStateTree := stateTrees[0]
 	fmt.Printf("Latest state tree : \n")
 	fmt.Printf(" - Block number : %x\n", latestStateTree.blockNumber)
-	fmt.Printf(" - State root : %x\n", latestStateTree.stateRoot)
+	fmt.Printf(" - State root : %x\n\n", latestStateTree.stateRoot)
 	
-	totalSize := getStorageTreeSize(ldb, latestStateTree.stateRoot)
+	getStorageTreeSize(ldb, latestStateTree.stateRoot)
+	
+	getStateTreeSize(ldb, latestStateTree.stateRoot)
 
-	fmt.Printf("\nLatest storage trees size : %v bytes\n", totalSize)
 }
 
 type stateFound struct {
@@ -92,35 +94,70 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 	return res
 }
 
-func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash) int {
+func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash) {
 	chan_storageRootNodes := make(chan common.Hash)
-	
+
 	go getStorageRootNodes(ldb, stateRootNode, chan_storageRootNodes)
 	
 	chan_nodeSize := make(chan int)
+	chan_leafSize := make(chan int)
 
 	go func() {
 		for storageRoot := range chan_storageRootNodes {
-			getTreeSize(ldb, storageRoot, chan_nodeSize)
+			getTreeSize(ldb, storageRoot, chan_nodeSize, chan_leafSize)
 		}
-		close(chan_nodeSize)
+		defer close(chan_nodeSize)
+		defer close(chan_leafSize)
 	}()
 
 	total := 0
+	totalLeaf := 0
+
+	go func() {
+		for s := range chan_leafSize {
+			totalLeaf += s
+		}
+	}()
 
 	for s := range chan_nodeSize {
 		total += s
 	}
 
-	return total
+	fmt.Printf("\nLatest storage leaf size : %v bytes\n", totalLeaf)
+	fmt.Printf("Latest storage trees size : %v bytes\n", total)
+}
+
+func getStateTreeSize(ldb ethdb.Database, stateRootNode common.Hash) {
+	
+	chan_nodeSize := make(chan int)
+	chan_leafSize := make(chan int)
+
+	go func() {
+		getTreeSize(ldb, stateRootNode, chan_nodeSize, chan_leafSize)
+		defer close(chan_nodeSize)
+		defer close(chan_leafSize)
+	}()
+
+	total := 0
+	totalLeaf := 0
+
+	go func() {
+		for s := range chan_leafSize {
+			totalLeaf += s
+		}
+	}()
+
+	for s := range chan_nodeSize {
+		total += s
+	}
+
+	fmt.Printf("\nLatest state leaf size : %v bytes\n", totalLeaf)
+	fmt.Printf("Latest state tree size : %v bytes\n", total)
 }
 
 // Go through the state tree to put in the channel the hashes of the smartcontracts root nodes
 func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan common.Hash) {
 	defer close(c)
-
-	barAcc := progressbar.Default(-1, "Account found")
-	fmt.Printf("\n")
 
 	trieDB := trie.NewDatabase(ldb)
 	treeState, _ := trie.New(stateRootNode, trieDB)
@@ -130,19 +167,19 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 	nbSmartcontract := 0
 	for it.Next() {
 		var acc snapshot.Account
-		
 		if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
 			panic(err)
 		}
 
-		barAcc.Add(1)
 		nbAccount++
-		
 		if bytes.Compare(acc.Root, emptyStorageRoot) != 0 {
 			nbSmartcontract++
 			c <- common.BytesToHash(acc.Root)
 		}
 
+		if nbAccount%10000==0 {
+			log.Info("Found", "Accounts", nbAccount, "Smartcontracts", nbSmartcontract)
+		}
 	}
 
 	fmt.Printf("\nFinal account number :%v\n", nbAccount)
@@ -150,22 +187,25 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 }
 
 // Returns in the channel each node size of the tree
-func getTreeSize(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int) {
+func getTreeSize(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int, leafSize chan int) {
 	value, err := ldb.Get(rootNode[:])
 	if err != nil {
 		return
 	}
 	
-	nodeSize <- len(rootNode) + len(value)
-	
 	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
 
+	if len(nodes) == 2 {
+		leafSize <- len(rootNode) + len(value)
+	}
+	nodeSize <- len(rootNode) + len(value)
+	
 	for _, keyNode := range nodes {
 		if len(keyNode) == 0 {
 			continue
 		}
-		getTreeSize(ldb, common.BytesToHash(keyNode), nodeSize)
+		getTreeSize(ldb, common.BytesToHash(keyNode), nodeSize, leafSize)
 	}
 }
 
