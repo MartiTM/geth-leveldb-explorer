@@ -11,6 +11,8 @@ import (
 )
 
 func FreezerBlockData(freezePath string, blockNb uint64) {
+	fmt.Printf("Freeze Data form block : %v\n\n", blockNb)
+	
 	header := getBlockHeader(freezePath, blockNb)
 	fmt.Printf("header : %x\n\n", header)
 
@@ -26,6 +28,8 @@ func FreezerBlockData(freezePath string, blockNb uint64) {
 	diff := getBlockDiff(freezePath, blockNb)
 	fmt.Printf("diff : %x\n\n", diff)
 }
+
+// ====================================================================================================
 
 func getBlockHash(freezePath string, blockNumber uint64) []byte {
 	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerHashTable, FreezerNoSnappy[freezerHashTable], true)
@@ -53,7 +57,7 @@ func getBlockDiff(freezePath string, blockNumber uint64) *big.Int {
 
 
 func getBlockReceipt(freezePath string, blockNumber uint64) types.Receipts {
-	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerReceiptTable, FreezerNoSnappy[freezerDifficultyTable], true)
+	freezeDB, err := rawdb.NewFreezerTable(freezePath, freezerReceiptTable, FreezerNoSnappy[freezerReceiptTable], true)
 	if err != nil {
 		panic(err)
 	}

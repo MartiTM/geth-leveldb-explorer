@@ -18,33 +18,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func ReadSnapshot()  {
-	ldbPath := "../.ethereum-testnet/goerli/geth/chaindata"
-	// ldbPath := "../.ethereum-test/geth/chaindata/"
-	ldb := getLDB(ldbPath)
-
-	addrHash := crypto.Keccak256Hash(common.Hex2Bytes("CB94B14958Dae51CC1499396DfA1A401b8085ECB"))
-	key := accountSnapshotKey(addrHash)
-	
-	data, err := ldb.Get(key)
-	data2, err := ldb.Get(common.Hex2Bytes("CB94B14958Dae51CC1499396DfA1A401b8085ECB"))
-
-
-	fmt.Printf("data : %x\n", data)
-	fmt.Printf("data2 : %x\n", data2)
-	fmt.Printf("err : %v\n", err)
-}
-
-func CountingStorageTrees(ldbPath string) {
-	ldb := getLDB(ldbPath)
-
-	stateTrees := getStateTrees(ldb)
-
-	fmt.Printf("\nTotal number of tree state : %v\n", len(stateTrees))
-} 
-
-// Displays the size of the most recent storage tree present in levelDB
-func LatestStateTreeSize(ldbPath string) {
+func StateAndStorageTrees(ldbPath string) {
 	ldb := getLDB(ldbPath)
 
 	chan_display := make(chan string, 6)
@@ -80,6 +54,39 @@ func LatestStateTreeSize(ldbPath string) {
 	}
 }
 
+func CountStateTrees(ldbPath string) {
+	ldb := getLDB(ldbPath)
+
+	stateTrees := getStateTrees(ldb)
+
+	fmt.Printf("\nTotal number of tree state : %v\n", len(stateTrees))
+}
+
+func ReadSnapshot(ldbPath string, addr string)  {
+	ldb := getLDB(ldbPath)
+
+	addrHash := crypto.Keccak256Hash(common.Hex2Bytes(addr))
+	key := accountSnapshotKey(addrHash)
+	
+	value, err := ldb.Get(key)
+	if err != nil {
+		panic(err)
+	}
+
+	var data snapshot.Account 
+	rlp.DecodeBytes(value, &data)
+
+	fmt.Printf("Snapshot : \n")
+	fmt.Printf("key : %x\n", key)
+	fmt.Printf("value : %x\n\n", value)
+	fmt.Printf("address : %v\n", addr)
+	fmt.Printf("data : %v\n", data)
+}
+
+/*
+==================================================================================================================================
+*/
+
 type stateFound struct {
 	blockNumber *big.Int;
 	stateRoot common.Hash;
@@ -113,6 +120,13 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 	return res
 }
 
+func getStateTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display chan string) {
+	stateTreeSize, stateTreeLeafSize := getTreeSize(ldb, stateRootNode)
+
+	display <- fmt.Sprintf("\nLatest state leaf size : %v bytes\n", stateTreeLeafSize)
+	display <- fmt.Sprintf("Latest state tree size : %v bytes\n", stateTreeSize)
+}
+
 func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display chan string) {
 	chan_storageRootNodes := make(chan common.Hash)
 
@@ -129,13 +143,6 @@ func getStorageTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display c
 
 	display <- fmt.Sprintf("\nLatest storage leaf size : %v bytes\n", totalLeaf)
 	display <- fmt.Sprintf("Latest storage tree size : %v bytes\n", total)
-}
-
-func getStateTreeSize(ldb ethdb.Database, stateRootNode common.Hash, display chan string) {
-	stateTreeSize, stateTreeLeafSize := getTreeSize(ldb, stateRootNode)
-
-	display <- fmt.Sprintf("\nLatest state leaf size : %v bytes\n", stateTreeLeafSize)
-	display <- fmt.Sprintf("Latest state tree size : %v bytes\n", stateTreeSize)
 }
 
 // Go through the state tree to put in the channel the hashes of the smartcontracts root nodes

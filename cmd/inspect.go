@@ -1,7 +1,3 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
@@ -11,21 +7,20 @@ import (
 	"main/tools"
 )
 
-// inspectDBCmd represents the inspectDB command
-var inspectDBCmd = &cobra.Command{
-	Use:   "inspectDB",
-	Short: "",
+var inspectCmd = &cobra.Command{
+	Use:   "inspect <Chaindata path>",
+	Short: "Same function as geth inspect",
 	Long: ``,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		path := "../.ethereum-testnet/goerli/geth/chaindata"
-		// path := "../.ethereum-test/geth/chaindata"
+		path := args[0]
 		db, _ := rawdb.NewLevelDBDatabaseWithFreezer(path, 0, 0, path+"/ancient", "", false)
 		tools.InspectDatabase(db, nil, nil)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(inspectDBCmd)
+	rootCmd.AddCommand(inspectCmd)
 
 	// Here you will define your flags and configuration settings.
 
