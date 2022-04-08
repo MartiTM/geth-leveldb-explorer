@@ -26,7 +26,6 @@ var countStateTreesCmd = &cobra.Command{
 	},
 }
 
-
 var snapshotAccountCmd = &cobra.Command{
 	Use:   "snapshotAccount <LevelDB path> <account address>",
 	Short: "Display the account informations store in the snapshot part of LevelDB",
@@ -37,8 +36,30 @@ var snapshotAccountCmd = &cobra.Command{
 	},
 }
 
+var treeAccountCmd = &cobra.Command{
+	Use:   "treeAccount <LevelDB path> <account address>",
+	Short: "Display the account informations store in the merkle tree part of LevelDB",
+	Long: ``,
+	Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		tools.TreeAccount(args[0], args[1])
+	},
+}
+
+var readCmd = &cobra.Command{
+	Use:   "read <LevelDB path> <key in hex>",
+	Short: "",
+	Long: ``,
+	// Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		tools.Read(args[0])
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(trieDetailsCmd)
 	rootCmd.AddCommand(countStateTreesCmd)
 	rootCmd.AddCommand(snapshotAccountCmd)
+	rootCmd.AddCommand(treeAccountCmd)
+	rootCmd.AddCommand(readCmd)
 }

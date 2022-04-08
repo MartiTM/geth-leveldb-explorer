@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -83,9 +84,63 @@ func ReadSnapshot(ldbPath string, addr string)  {
 	fmt.Printf("data : %v\n", data)
 }
 
+func TreeAccount(ldbPath string, addr string)  {
+	ldb := getLDB(ldbPath)
+	
+	// stateRootNode := getStateTrees(ldb)[0].stateRoot
+	stateRootNode := common.HexToHash("93c3aa9ee4c6285fbe9d28dfbfa245912220dac8fda9c0ecf44ee9677a5f7b19")
+	
+	key, value := getAccountFromTreeState(ldb, stateRootNode, common.HexToAddress(addr))
+	
+	var data [][]byte 
+	rlp.DecodeBytes(value, &data)
+	
+	var acc [][]byte 
+	rlp.DecodeBytes(data[1], &acc)
+
+	fmt.Printf("Merkle-Patricia tree : \n")
+	fmt.Printf("key : %x\n", key)
+	fmt.Printf("value : %x\n\n", value)
+
+	fmt.Printf("address : %v\n", common.HexToAddress(addr))
+	fmt.Printf("data : %x\n", data)
+	fmt.Printf("account data : %x\n", acc)
+}
+
+func Read(ldbPath string) {
+	ldb := getLDB(ldbPath)
+
+	data, _ := ldb.Get(SnapshotRootKey)
+	fmt.Printf("result : %x\n", data)
+}
+
 /*
 ==================================================================================================================================
 */
+
+func getAccountFromTreeState(ldb ethdb.Database, nodeRoot common.Hash ,addr common.Address) (key, value []byte) {
+	addrHash := crypto.Keccak256Hash(addr[:])
+		
+	nodeValue, _ := ldb.Get(nodeRoot[:])
+	var data [][]byte
+	var nodeKey []byte
+	
+	for i := 0; true; i++ {
+		
+		rlp.DecodeBytes(nodeValue, &data)
+		
+		if len(data) == 2 {
+			break
+		}
+
+		index, _ := strconv.ParseInt(string(addrHash.String()[i+2]), 16, 10)
+		nodeKey = data[index]
+
+		nodeValue, _ = ldb.Get(nodeKey)
+	}
+	
+	return nodeKey, nodeValue
+}
 
 type stateFound struct {
 	blockNumber *big.Int;
