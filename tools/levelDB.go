@@ -81,7 +81,7 @@ func ReadSnapshot(ldbPath string, addr string)  {
 	fmt.Printf("key : %x\n", key)
 	fmt.Printf("value : %x\n\n", value)
 	fmt.Printf("address : %v\n", addr)
-	fmt.Printf("data : %v\n", data)
+	fmt.Printf("data : %x\n", data)
 }
 
 func TreeAccount(ldbPath string, addr string)  {

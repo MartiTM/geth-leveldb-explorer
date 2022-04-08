@@ -11,7 +11,7 @@ import (
 )
 
 func FreezerBlockData(freezePath string, blockNb uint64) {
-	fmt.Printf("Freeze Data form block : %v\n\n", blockNb)
+	fmt.Printf("Freeze Data block : %v\n\n", blockNb)
 	
 	header := getBlockHeader(freezePath, blockNb)
 	fmt.Printf("header : %x\n\n", header)
