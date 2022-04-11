@@ -24,7 +24,7 @@ func StateAndStorageTrees(ldbPath string) {
 
 	chan_display := make(chan string, 6)
 	
-	stateTrees := getStateTrees(ldb)
+	stateTrees := getStateTrees(ldb, -1)
 	latestStateTree := stateTrees[0]
 
 	var wg sync.WaitGroup
@@ -58,12 +58,12 @@ func StateAndStorageTrees(ldbPath string) {
 func CountStateTrees(ldbPath string) {
 	ldb := getLDB(ldbPath)
 
-	stateTrees := getStateTrees(ldb)
+	stateTrees := getStateTrees(ldb, -1)
 
 	fmt.Printf("\nTotal number of tree state : %v\n", len(stateTrees))
 }
 
-func ReadSnapshot(ldbPath string, addr string)  {
+func SnapshotAccount(ldbPath string, addr string)  {
 	ldb := getLDB(ldbPath)
 
 	addrHash := crypto.Keccak256Hash(common.Hex2Bytes(addr))
@@ -87,8 +87,7 @@ func ReadSnapshot(ldbPath string, addr string)  {
 func TreeAccount(ldbPath string, addr string)  {
 	ldb := getLDB(ldbPath)
 	
-	// stateRootNode := getStateTrees(ldb)[0].stateRoot
-	stateRootNode := common.HexToHash("93c3aa9ee4c6285fbe9d28dfbfa245912220dac8fda9c0ecf44ee9677a5f7b19")
+	stateRootNode := getStateTrees(ldb, 1)[0].stateRoot
 	
 	key, value := getAccountFromTreeState(ldb, stateRootNode, common.HexToAddress(addr))
 	
@@ -105,6 +104,14 @@ func TreeAccount(ldbPath string, addr string)  {
 	fmt.Printf("address : %v\n", common.HexToAddress(addr))
 	fmt.Printf("data : %x\n", data)
 	fmt.Printf("account data : %x\n", acc)
+}
+
+func CompareAccount(ldbPath, addr string) {
+	TreeAccount(ldbPath, addr)
+
+	fmt.Printf("\n")
+
+	SnapshotAccount(ldbPath, addr)
 }
 
 func Read(ldbPath string) {
@@ -147,7 +154,7 @@ type stateFound struct {
 	stateRoot common.Hash;
 }
 
-func getStateTrees(ldb ethdb.Database) ([]stateFound) {
+func getStateTrees(ldb ethdb.Database, stopAt int) ([]stateFound) {
 	var res []stateFound
 	bar := progressbar.Default(-1, "Block crowled")
 	fmt.Printf("\n")
@@ -167,6 +174,9 @@ func getStateTrees(ldb ethdb.Database) ([]stateFound) {
 		bar.Add(1)
 		if len(stateRootNode) > 0 {
 			res = append(res, stateFound{blockHeader.Number, blockHeader.Root})
+			if stopAt > 0 && len(res) == stopAt {
+				return res
+			}
 		}
 
 		headerHash = blockHeader.ParentHash.Bytes()
