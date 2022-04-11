@@ -27,7 +27,7 @@ This is an example of how to list things you need to use the software and how to
   npm install npm@latest -g
   ```
 
-### Installation
+### Installation TODO
 
 1. Get a free API Key at [https://example.com](https://example.com)
 2. Clone the repo
@@ -50,7 +50,7 @@ This is an example of how to list things you need to use the software and how to
 ## 1 - LevelDB
 
 ## 1.1 - TrieDetails
-Search in levelDB the last merkle-patricia tree
+Search in levelDB the merkle-patricia trees and detail the last one
 
 ```sh
   go run main.go trieDetails <LevelDB path>
@@ -113,7 +113,7 @@ Search for an account in the snapshot part of LevelDB
   go run main.go snapshotAccount <LevelDB path> <account address>
 ```
 
-Return raw and decoded informations about the account in the snapshot part of LevelDB
+Return raw and decoded informations about the account
 
 Example :
 ```sh
@@ -136,7 +136,7 @@ Search for an account in the merkle-patricia tree part of LevelDB
   go run main.go treeAccount <LevelDB path> <account address>
 ```
 
-Return raw and decoded informations about the account in the merkle-patricia tree part of LevelDB
+Return raw and decoded informations about the account
 
 Example :
 ```sh
@@ -151,6 +151,36 @@ Example :
   address : 0x8c5fecdC472E27Bc447696F431E425D02dd46a8c
   data : [3f03c4b8bcb5b2c0947f2d835e7f4f740de39eb1e8c38510d275cfa293 f84e018ac758d0418cfd96ed0000a03651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834a07ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470]
   account data : [01 c758d0418cfd96ed0000 3651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834 7ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470]
+```
+## 1.5 - CompareAccount
+Search for an account in the merkle-patricia tree and snapshot in LevelDB
+
+```sh
+  go run main.go treeAccount <LevelDB path> <account address>
+```
+
+Return raw and decoded informations about the account for both part
+
+Example :
+```sh
+  go run main.go compareAccount .ethereum/geth/chaindata/ 8c5fecdC472E27Bc447696F431E425D02dd46a8c
+  
+LevelDB ok
+Merkle-Patricia tree : 
+key : 45afc616075ec2b73fd61a0bd140b7acbda2aca54dd847a610bc4b2cfe4b6ecc
+value : f8709d3f03c4b8bcb5b2c0947f2d835e7f4f740de39eb1e8c38510d275cfa293b850f84e018ac758d0418cfd96ed0000a03651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834a07ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470
+
+address : 0x8c5fecdC472E27Bc447696F431E425D02dd46a8c
+data : [3f03c4b8bcb5b2c0947f2d835e7f4f740de39eb1e8c38510d275cfa293 f84e018ac758d0418cfd96ed0000a03651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834a07ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470]
+account data : [01 c758d0418cfd96ed0000 3651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834 7ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470]
+
+LevelDB ok
+Snapshot : 
+key : 619a66eb0f03c4b8bcb5b2c0947f2d835e7f4f740de39eb1e8c38510d275cfa293
+value : f84e018ac758d0418cfd96ed0000a03651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834a07ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470
+
+address : 8c5fecdC472E27Bc447696F431E425D02dd46a8c
+data : {1 c758d0418cfd96ed0000 3651d63fc041c58389f4cf0fb3fda66de9a32a0cd2e46abfdfa879c4c58b9834 7ce293e59007112eda7059ed925f5a539ef50eb0997864f24f16007e9f746470}
 ```
 ---------------------------
 ## 2 - FreezeDB
