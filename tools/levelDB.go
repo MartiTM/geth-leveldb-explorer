@@ -47,7 +47,7 @@ func StateAndStorageTrees(ldbPath string) {
 	fmt.Printf("\nTotal number of tree state : %v\n\n", len(stateTrees))
 	
 	fmt.Printf("Latest state tree : \n")
-	fmt.Printf(" - Block number : %x\n", latestStateTree.blockNumber)
+	fmt.Printf(" - Block number : %v\n", latestStateTree.blockNumber)
 	fmt.Printf(" - State root : %x\n\n", latestStateTree.stateRoot)
 
 	for res := range chan_display {
@@ -117,8 +117,36 @@ func CompareAccount(ldbPath, addr string) {
 func Read(ldbPath string) {
 	ldb := getLDB(ldbPath)
 
-	data, _ := ldb.Get(SnapshotRootKey)
-	fmt.Printf("result : %x\n", data)
+
+	storageRoot := common.HexToHash("68cc4abd4ca019d4b4284e32c0040c2f5bc3bf78dec89c1b5de6981a5d1efc5a")
+
+	trieDB := trie.NewDatabase(ldb)
+	treeState, _ := trie.New(storageRoot, trieDB)
+
+	it := trie.NewIterator(treeState.NodeIterator(nil))
+
+	for it.Next() {
+		// if err := rlp.DecodeBytes(it.Value, &acc); err != nil {
+		// 	panic(err)
+		// }
+
+		fmt.Printf("brut : %x\n", it.Value)
+
+		break
+	}
+
+	// headerHash, _ := ldb.Get(headHeaderKey)
+	// blockNb, _ := ldb.Get(append(headerNumberPrefix, headerHash...))
+	// var blockHeader types.Header
+	// blockHeaderRaw, _ := ldb.Get(append(headerPrefix[:], append(blockNb, headerHash...)...))
+	// rlp.DecodeBytes(blockHeaderRaw, &blockHeader)
+
+	// stateTrees := getStateTrees(ldb, 1)
+	// latestStateTree := stateTrees[0]
+
+	// fmt.Printf("\nblock number last state tree : %v\n", latestStateTree.blockNumber)
+	// fmt.Printf("\nlast block number : %v\n", blockHeader.Number)
+	// fmt.Printf("\ndiff : %v\n",  blockHeader.Number.Sub(blockHeader.Number,latestStateTree.blockNumber))
 }
 
 /*
