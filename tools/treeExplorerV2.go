@@ -72,9 +72,9 @@ func StateAndStorageTreesV2(ldbPath string) {
 			),
 	)
 
+	wg.Add(1)
 	// explore the latest state tree
 	go func(){
-		wg.Add(1)
 		defer wg.Done()
 		defer close(storageRoot)
 
@@ -97,12 +97,13 @@ func StateAndStorageTreesV2(ldbPath string) {
 				}
 				return false
 		})
-		fmt.Printf("fin state tree\n")
+		p.Abort(accBar, false)
+		p.Abort(stateNodeBar, false)
 	}()
 	
+	wg.Add(1)
 	// explore each storage tree
 	go func(){
-		wg.Add(1)
 		defer wg.Done()
 		// handle storage root
 		for root := range storageRoot {
@@ -126,6 +127,8 @@ func StateAndStorageTreesV2(ldbPath string) {
 				goRoutineNodeBar.IncrBy(-1)
 			}()
 		}
+		p.Abort(storageNodeBar, false)
+		p.Abort(goRoutineNodeBar, false)
 	}()
 
 
@@ -133,7 +136,7 @@ func StateAndStorageTreesV2(ldbPath string) {
 
 	fmt.Printf("time : %v \n", time.Now().Sub(start))
 	fmt.Printf("state tree :\n")
-	fmt.Printf("	- nodes :: number : %v / size : %v\n", stateTree.Count(), stateTree.Size())
+	fmt.Printf("  - nodes :: number : %v / size : %v\n", stateTree.Count(), stateTree.Size())
 	fmt.Printf("  - leafs :: number : %v / size : %v\n", stateLeaf.Count(), stateLeaf.Size())
 	fmt.Printf("storage tree :\n")
 	fmt.Printf("  - nodes :: number : %v / size : %v\n", storageTree.Count(), storageTree.Size())
