@@ -134,6 +134,7 @@ func StateAndStorageTreesV2(ldbPath string) {
 
 	p.Wait()
 
+	fmt.Printf("\n--------------------------------------\n")
 	fmt.Printf("time : %v \n", time.Now().Sub(start))
 	fmt.Printf("state tree :\n")
 	fmt.Printf("  - nodes :: number : %v / size : %v\n", stateTree.Count(), stateTree.Size())
