@@ -21,7 +21,8 @@ var trieDetailsCmd = &cobra.Command{
 	`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		tools.StateAndStorageTrees(args[0])
+		// tools.StateAndStorageTrees(args[0])
+		tools.StateAndStorageTreesV2(args[0])
 	},
 }
 
