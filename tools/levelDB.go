@@ -23,29 +23,29 @@ func StateAndStorageTrees(ldbPath string) {
 	ldb := getLDB(ldbPath)
 
 	chan_display := make(chan string, 6)
-	
+
 	stateTrees := getStateTrees(ldb, -1)
 	latestStateTree := stateTrees[0]
 
 	var wg sync.WaitGroup
-	
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		getStorageTreeSize(ldb, latestStateTree.stateRoot, chan_display)
 	}()
-	
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		getStateTreeSize(ldb, latestStateTree.stateRoot, chan_display)
 	}()
-	
+
 	wg.Wait()
 	close(chan_display)
 
 	fmt.Printf("\nTotal number of tree state : %v\n\n", len(stateTrees))
-	
+
 	fmt.Printf("Latest state tree : \n")
 	fmt.Printf(" - Block number : %v\n", latestStateTree.blockNumber)
 	fmt.Printf(" - State root : %x\n\n", latestStateTree.stateRoot)
@@ -63,18 +63,18 @@ func CountStateTrees(ldbPath string) {
 	fmt.Printf("\nTotal number of tree state : %v\n", len(stateTrees))
 }
 
-func SnapshotAccount(ldbPath string, addr string)  {
+func SnapshotAccount(ldbPath string, addr string) {
 	ldb := getLDB(ldbPath)
 
 	addrHash := crypto.Keccak256Hash(common.Hex2Bytes(addr))
 	key := accountSnapshotKey(addrHash)
-	
+
 	value, err := ldb.Get(key)
 	if err != nil {
 		panic(err)
 	}
 
-	var data snapshot.Account 
+	var data snapshot.Account
 	rlp.DecodeBytes(value, &data)
 
 	fmt.Printf("Snapshot : \n")
@@ -84,17 +84,17 @@ func SnapshotAccount(ldbPath string, addr string)  {
 	fmt.Printf("data : %x\n", data)
 }
 
-func TreeAccount(ldbPath string, addr string)  {
+func TreeAccount(ldbPath string, addr string) {
 	ldb := getLDB(ldbPath)
-	
+
 	stateRootNode := getStateTrees(ldb, 1)[0].stateRoot
-	
+
 	key, value := getAccountFromTreeState(ldb, stateRootNode, common.HexToAddress(addr))
-	
-	var data [][]byte 
+
+	var data [][]byte
 	rlp.DecodeBytes(value, &data)
-	
-	var acc [][]byte 
+
+	var acc [][]byte
 	rlp.DecodeBytes(data[1], &acc)
 
 	fmt.Printf("Merkle-Patricia tree : \n")
@@ -116,7 +116,6 @@ func CompareAccount(ldbPath, addr string) {
 
 func Read(ldbPath string) {
 	ldb := getLDB(ldbPath)
-
 
 	storageRoot := common.HexToHash("68cc4abd4ca019d4b4284e32c0040c2f5bc3bf78dec89c1b5de6981a5d1efc5a")
 
@@ -153,17 +152,17 @@ func Read(ldbPath string) {
 ==================================================================================================================================
 */
 
-func getAccountFromTreeState(ldb ethdb.Database, nodeRoot common.Hash ,addr common.Address) (key, value []byte) {
+func getAccountFromTreeState(ldb ethdb.Database, nodeRoot common.Hash, addr common.Address) (key, value []byte) {
 	addrHash := crypto.Keccak256Hash(addr[:])
-		
+
 	nodeValue, _ := ldb.Get(nodeRoot[:])
 	var data [][]byte
 	var nodeKey []byte
-	
+
 	for i := 0; true; i++ {
-		
+
 		rlp.DecodeBytes(nodeValue, &data)
-		
+
 		if len(data) == 2 {
 			break
 		}
@@ -173,16 +172,16 @@ func getAccountFromTreeState(ldb ethdb.Database, nodeRoot common.Hash ,addr comm
 
 		nodeValue, _ = ldb.Get(nodeKey)
 	}
-	
+
 	return nodeKey, nodeValue
 }
 
 type stateFound struct {
-	blockNumber *big.Int;
-	stateRoot common.Hash;
+	blockNumber *big.Int
+	stateRoot   common.Hash
 }
 
-func getStateTrees(ldb ethdb.Database, stopAt int) ([]stateFound) {
+func getStateTrees(ldb ethdb.Database, stopAt int) []stateFound {
 	var res []stateFound
 	bar := progressbar.Default(-1, "Block crowled")
 	fmt.Printf("\n")
@@ -260,7 +259,7 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 			c <- common.BytesToHash(acc.Root)
 		}
 
-		if nbAccount%10000==0 {
+		if nbAccount%10000 == 0 {
 			log.Info("Found", "Accounts", nbAccount, "Smartcontracts", nbSmartcontract)
 		}
 	}
@@ -269,7 +268,6 @@ func getStorageRootNodes(ldb ethdb.Database, stateRootNode common.Hash, c chan c
 	display <- fmt.Sprintf("Final smartcontract number :%v\n", nbSmartcontract)
 }
 
-// 
 func getTreeSize(ldb ethdb.Database, rootNode common.Hash) (treeSize int, leafSize int) {
 
 	chan_nodeSize := make(chan int)
@@ -295,7 +293,7 @@ func getTreeSize(ldb ethdb.Database, rootNode common.Hash) (treeSize int, leafSi
 	}
 
 	return total, totalLeaf
-	
+
 }
 
 func exploreTreeNodes(ldb ethdb.Database, rootNode common.Hash, nodeSize chan int, leafSize chan int) {
@@ -303,7 +301,7 @@ func exploreTreeNodes(ldb ethdb.Database, rootNode common.Hash, nodeSize chan in
 	if err != nil {
 		return
 	}
-	
+
 	var nodes [][]byte
 	rlp.DecodeBytes(value, &nodes)
 
@@ -312,7 +310,7 @@ func exploreTreeNodes(ldb ethdb.Database, rootNode common.Hash, nodeSize chan in
 		leafSize <- len(rootNode) + len(value)
 	}
 	nodeSize <- len(rootNode) + len(value)
-	
+
 	// explore next nodes
 	for _, keyNode := range nodes {
 		if len(keyNode) == 0 {
@@ -325,6 +323,8 @@ func exploreTreeNodes(ldb ethdb.Database, rootNode common.Hash, nodeSize chan in
 func getLDB(ldbPath string) ethdb.Database {
 	ldb, err := rawdb.NewLevelDBDatabase(ldbPath, 0, 0, "", true)
 	if err != nil {
+		fmt.Println("Did not find leveldb at path:", ldbPath)
+		fmt.Println("Are you sure you are pointing to the 'chaindata' folder?")
 		panic(err)
 	}
 	fmt.Print("LevelDB ok\n")
